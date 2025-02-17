@@ -1,0 +1,20 @@
+# Ignore everything
+*
+
+# But not .gitignore itself
+!.gitignore
+
+# Allow .py files
+!*.py
+
+# Allow my_folder
+!POSCARS/
+!POSCARS/*
+!POTCARS/
+!POTCARS/*
+!CALPHAD_CALC/
+!CALPHAD_CALC/*
+
+
+# Ignore the sub_folder within my_folder
+POSCARS/_manually/

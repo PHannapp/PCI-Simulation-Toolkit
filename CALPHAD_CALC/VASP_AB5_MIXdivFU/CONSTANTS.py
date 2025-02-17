@@ -1,0 +1,13 @@
+R_CONST = 8.3144621 # Gas constant
+G_X = 1 # x_H of GAS (usually 1)
+ACC = 1e-4 # accuracy when finding common 
+SLICES = 20
+DX = 1e-5 # change when going away from IP
+DX1 = 1e-6 # First derivate accuracy
+DX2 = 1e-5 # Second derivate accuracy
+WEIGHT = 10 # weight of plateau information over normal p_x pairs
+# BOUND_MAX = 200
+SLOPE_MIN = -400000000
+SLOPE_MAX = 4000000000
+P_MAX = 1e19
+D_X = 0.015 # uncertainty for composition points

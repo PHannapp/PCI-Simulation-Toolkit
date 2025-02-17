@@ -1,0 +1,124 @@
+import numpy as np
+# reference -------------------------------------------------------------------------------
+def GHSERNI(T):
+    return -5179.159+117.854*T-22.096*T*np.log(T)-0.0048407*T**2
+def GHSERAL(T):
+    return -7976.15 + 137.093038*T - 24.3671976*T*np.log(T) - 1.884662E-3*T**2 - 0.877664E-6*T**3 + 74092*T**(-1)
+def GHSERCE(T):
+    return -7160.519+84.23022*T-22.3664*T*np.log(T)-0.0067103*T**2-0.000000320773*T**3-18117*T**(-1)
+def GHSERH2(T):
+    return -9522.97393+78.5273873*T-31.35707*T*np.log(T)+0.0027589925*T**2-0.000000746390667*T**3+56582.3*T**(-1)
+def GHSERLA(T):
+    return -7968.403 + 120.284604*T - 26.34*T*np.log(T) - 0.001295165*T**2
+def S_LANI5H7(T):
+   return 1000*(5.62825442803992e-06 * T**2 + -0.006678618935576874 * T + 2.4175973314739525)
+def S_LANI5(T):
+   return 1000*(-2.1899474465363945e-07 * T**2 + 0.00037548868531826925 * T + -0.18369336729418206)
+
+# Endmembers -------------------------------------------------------------------------------
+def GCE_AL_H_H(T):
+   return 1*GHSERCE(T) + 5*GHSERAL(T) + 3.5*GHSERH2(T) + (177478) + (455.0 * T)
+def GCE_AL_H_V(T):
+   return 1*GHSERCE(T) + 5*GHSERAL(T) + 0.5*GHSERH2(T) + (11522) + (65.0 * T)
+def GCE_AL_V_H(T):
+   return 1*GHSERCE(T) + 5*GHSERAL(T) + 3.0*GHSERH2(T) + (154435) + (390.0 * T)
+def GCE_AL_V_V(T):
+   return 1*GHSERCE(T) + 5*GHSERAL(T) + 0*GHSERH2(T) + (-119151) + (0 * T)
+def GCE_NI_H_H(T):
+   return 1*GHSERCE(T) + 5*GHSERNI(T) + 3.5*GHSERH2(T) + (-274444) + (455.0 * T)
+def GCE_NI_H_V(T):
+   return 1*GHSERCE(T) + 5*GHSERNI(T) + 0.5*GHSERH2(T) + (-185709) + (65.0 * T)
+def GCE_NI_V_H(T):
+   return 1*GHSERCE(T) + 5*GHSERNI(T) + 3.0*GHSERH2(T) + (-251901) + (390.0 * T)
+def GCE_NI_V_V(T):
+   return 1*GHSERCE(T) + 5*GHSERNI(T) + 0*GHSERH2(T) + (-202362) + (0 * T)
+def GLA_AL_H_H(T):
+   return 1*GHSERLA(T) + 5*GHSERAL(T) + 3.5*GHSERH2(T) + (155114) + (455.0 * T)
+def GLA_AL_H_V(T):
+   return 1*GHSERLA(T) + 5*GHSERAL(T) + 0.5*GHSERH2(T) + (-99348) + (65.0 * T)
+def GLA_AL_V_H(T):
+   return 1*GHSERLA(T) + 5*GHSERAL(T) + 3.0*GHSERH2(T) + (131944) + (390.0 * T)
+def GLA_AL_V_V(T):
+   return 1*GHSERLA(T) + 5*GHSERAL(T) + 0*GHSERH2(T) + (-146205) + (0 * T)
+def GLA_NI_H_H(T):
+   return 1*GHSERLA(T) + 5*GHSERNI(T) + 3.5*GHSERH2(T) + (-294242) + (455.0 * T) + S_LANI5H7(T)
+def GLA_NI_H_V(T):
+   return 1*GHSERLA(T) + 5*GHSERNI(T) + 0.5*GHSERH2(T) + (-169786) + (65.0 * T) + (1/7*S_LANI5H7(T) + 6/7*S_LANI5(T))
+def GLA_NI_V_H(T):
+   return 1*GHSERLA(T) + 5*GHSERNI(T) + 3.0*GHSERH2(T) + (-260587) + (390.0 * T) + (6/7*S_LANI5H7(T) + 1/7*S_LANI5(T))
+def GLA_NI_V_V(T):
+   return 1*GHSERLA(T) + 5*GHSERNI(T) + 0*GHSERH2(T) + (-165689) + (0 * T) + S_LANI5(T)
+
+# Interaction parameters -------------------------------------------------------------------
+def LLA_ALNI_H_H_0(T):
+   return -691534
+def LLA_ALNI_H_H_1(T):
+   return -251336
+def LLA_ALNI_H_H_2(T):
+   return -813755
+def LLA_ALNI_H_V_0(T):
+   return -798410
+def LLA_ALNI_H_V_1(T):
+   return -333304
+def LLA_ALNI_H_V_2(T):
+   return -351502
+def LLA_ALNI_V_H_0(T):
+   return -823833
+def LLA_ALNI_V_H_1(T):
+   return -190873
+def LLA_ALNI_V_H_2(T):
+   return -550548
+def LLA_ALNI_V_V_0(T):
+   return -464158
+def LLA_ALNI_V_V_1(T):
+   return -136
+def LLA_ALNI_V_V_2(T):
+   return -85734
+def LLA_AL_HV_H_0(T):
+   return -164505
+def LLA_AL_HV_H_1(T):
+   return 40269
+def LLA_AL_HV_H_2(T):
+   return 23611
+def LLA_AL_HV_V_0(T):
+   return 13601
+def LLA_AL_HV_V_1(T):
+   return -489
+def LLA_AL_HV_V_2(T):
+   return -20683
+def LLA_NI_HV_H_0(T):
+   return 801
+def LLA_NI_HV_H_1(T):
+   return -211
+def LLA_NI_HV_H_2(T):
+   return -383
+def LLA_NI_HV_V_0(T):
+   return 4331
+def LLA_NI_HV_V_1(T):
+   return -1076
+def LLA_NI_HV_V_2(T):
+   return -6585
+def LLA_AL_H_HV_0(T):
+   return 27364
+def LLA_AL_H_HV_1(T):
+   return -26607
+def LLA_AL_H_HV_2(T):
+   return -65475
+def LLA_AL_V_HV_0(T):
+   return 115861
+def LLA_AL_V_HV_1(T):
+   return -67375
+def LLA_AL_V_HV_2(T):
+   return -182375
+def LLA_NI_H_HV_0(T):
+   return 43112
+def LLA_NI_H_HV_1(T):
+   return 2926
+def LLA_NI_H_HV_2(T):
+   return -76650
+def LLA_NI_V_HV_0(T):
+   return 40256
+def LLA_NI_V_HV_1(T):
+   return -16849
+def LLA_NI_V_HV_2(T):
+   return -44151
