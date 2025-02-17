@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt  # For plotting
 import random
 import time
 import os
+import pandas as pd
+from scipy.interpolate import interp1d
 
 dir = r"/home/pet69516/Dokumente/DFTforCALPHAD_home/CALPHAD_CALC"
 
@@ -200,11 +202,59 @@ for num in range(len(file_names_BCC)):
             else:
                 plt.xlabel("Hydrogen mole fraction, $\t{x_{H}}$ / ")
 
+            x_exp = np.array([line[0] for line in exp[xps]])
+            y_exp = np.array([line[1] for line in exp[xps]])
+            
+            # Remove zero or negative values (to avoid log10 issues)
+            valid_indices = (y_exp > 0)
+            x_exp, y_exp = x_exp[valid_indices], y_exp[valid_indices]
+            
+            if len(x_exp) == 0:
+                print(f"Skipping xps={xps} due to all invalid values.")
+                continue
+            
+            # Interpolate simulated data at experimental c_H values
+            interp_func = interp1d(np.array(x_plot), np.log10(np.array(p_plot)), kind='linear', fill_value="extrapolate")
+            p_sim_interp = 10 ** interp_func(x_exp)  # Convert back from log scale
+            
+            # Remove NaN or Inf values in interpolated results
+            valid_indices = np.isfinite(p_sim_interp) & (p_sim_interp > 0)
+            x_exp, y_exp, p_sim_interp = x_exp[valid_indices], y_exp[valid_indices], p_sim_interp[valid_indices]
+            
+            if len(x_exp) == 0:
+                print(f"Skipping xps={xps} due to NaN or Inf in interpolation.")
+                continue
+            
+            # Compute errors
+            log_p_exp = np.log10(y_exp)
+            log_p_sim_interp = np.log10(p_sim_interp)
+            
+            # Mean Absolute Error (MAE)
+            mae = np.mean(np.abs(log_p_exp - log_p_sim_interp))
+            
+            # Root Mean Square Error (RMSE)
+            rmse = np.sqrt(np.mean((log_p_exp - log_p_sim_interp) ** 2))
+            
+            # R² Score (Coefficient of Determination)
+            ss_tot = np.sum((log_p_exp - np.mean(log_p_exp)) ** 2)
+            ss_res = np.sum((log_p_exp - log_p_sim_interp) ** 2)
+            
+            r2 = 1 - (ss_res / ss_tot) if ss_tot > 0 else np.nan  # Avoid division by zero
+            
+            # Plot only if metrics are valid
+            if np.isfinite(mae) and np.isfinite(rmse) and np.isfinite(r2):
+                plt.semilogy(
+                    x_plot, p_plot, 
+                    label=f"MAE: {mae:.2e}, RMSE: {rmse:.2e}, R²: {r2:.2e}", 
+                    color=cmap(num + xps)
+                )
+            else:
+                print(f"Skipping xps={xps} due to invalid error metrics.")
 
-            plt.semilogy(
-                x_plot, p_plot, 
-                label=f"{global_structure.name[0]}", color=cmap(num+xps)
-            )  # Create a semilogarithmic plot
+            #plt.semilogy(
+            #    x_plot, p_plot, 
+            #    label=f"MAE: {global_structure.name[0]}", color=cmap(num+xps)
+            #)  # Create a semilogarithmic plot
 
 if FORCE:
     plt.figure(3)
