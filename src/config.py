@@ -29,3 +29,5 @@ n_hydrogen = 32
 n_POSCAR = 20
 # maximum number of interstitial sites found for constructing the .NN file
 max_interstial = 10 # n_interstitials = max_interstial * n_metal_atoms
+# Entropy of the disappearing gas phase
+dS_H2 = 130 # J / molK

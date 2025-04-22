@@ -3,8 +3,6 @@ from src.read import metallic_radii
 import scipy.optimize as opt
 from src.config import tries, n_NN, distance, radius_thr, bounds_interstitial, spheres_not_touching, max_interstial
 from src.CONSTANTS import translation_vectors
-import os
-import csv
 import re
 import copy
 

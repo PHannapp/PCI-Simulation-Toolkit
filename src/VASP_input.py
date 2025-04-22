@@ -1,31 +1,24 @@
-from pymongo import MongoClient
 from bson.objectid import ObjectId  # Required to work with _id
 import os
 import numpy as np
 import gridfs
-from CONSTANTS import MAGNETIZATION_DICT
+from src.CONSTANTS import MAGNETIZATION_DICT
 import shutil
-from clean_poscar_from_Va import clean_poscar_from_Va
+from datetime import datetime, timezone  # Import timezone for UTC handling
+from MongoDB.connect import collection_calculation, collection_system, db
 
 # Save the current working directory
 original_directory = os.getcwd()
 
-# Connect to MongoDB
-client = MongoClient('mongodb://localhost:27017/')
-db = client.DFTforCALPHAD
-collection_system = db.System
-collection_calculation = db.calculation
-
-
 directory_mcsqs = os.path.join(original_directory, "RUNS")
-directory_vasp_results = r"/ifamdd-mounts/work/240/htech/_HannappelP/DFTData/FROMHPC"
+directory_vasp_results_base = os.path.join(original_directory, "VASPResults")
+directory_vasp_results =  os.path.join(directory_vasp_results_base, "copy")
 directory_script = os.path.join(original_directory, "VASPInput")
-directory_vasp_input = r"/ifamdd-mounts/work/240/htech/_HannappelP/DFTData/TOHPC/copy"
+directory_vasp_input = os.path.join(original_directory, "VASPInput")
 POTCAR_dir = os.path.join(original_directory,  "POTCARS")
-target_directory =  os.path.join(directory_vasp_results, "old")
+target_directory =  os.path.join(directory_vasp_results_base, "old")
 
 def vasp_input():
-    clean_poscar_from_Va()
     tasks = collection_calculation.find(
         {
             "$or": [
@@ -158,223 +151,6 @@ SIGMA = 0.2
             }
         )
 
-def vasp_input_tmp():
-    clean_poscar_from_Va()
-    tasks = collection_calculation.find(
-        {   
-            "elements.0":["La"],
-            "system":"(A),(B)2(B)3,(H,Va)1,(H,Va)6"
-        }
-    )
-    EDIFF_BASE = [1e-5]
-    EDIFFG = [1e-4]
-    LREAL = ["Auto"]
-    SAVE = ['.TRUE.']
-    ISMEAR = ['']
-    ISIF = [7]
-    for task in tasks:
-        if not task.get('system_id'):
-            task_system = {'calculation_information': {'cutoff':[450], 'k_point_density': [0.22]}}
-        else:   
-            task_system = collection_system.find_one({"_id": task['system_id']})
-
-        # Create folder name
-        task_id_str = ""  
-        for elements in task['elements']:
-            for element in elements:
-                task_id_str += element
-            task_id_str += "-"
-        task_id_str += f'{str(task["_id"])}'  # Convert ObjectId to string
-        task_dir = os.path.join(directory_vasp_input, task_id_str)  # Create the path for the folder
-
-        # Check if the directory_VASP already exists; if not, create it
-        if not os.path.exists(task_dir):
-            os.makedirs(task_dir)
-            print(f"Created directory: {task_dir}")
-        poscar_array = task["POSCAR"].splitlines()
-        elements = poscar_array[5].split()
-        number = poscar_array[6].split()
-        number = [int(n) for n in number]
-
-        with open(os.path.join(directory_vasp_input,"script.sh"), 'r') as script_file:
-            # Read the content of the individual POTCAR file and write it to the combined POTCAR file
-            script_string = script_file.read()
-        # Create the POTCAR file by concatenating all element-specific POTCAR files
-        with open(os.path.join(task_dir, 'POTCAR'), 'w') as POTCARfile:
-            potcar_string = ""
-            for element in elements:
-                potcar_path = os.path.join(POTCAR_dir, element.upper())  # Find the path to the POTCAR file for each element
-                # Ensure that the POTCAR file exists before reading
-                if os.path.exists(potcar_path):
-                    with open(potcar_path, 'r') as potcar_element_file:
-                        # Read the content of the individual POTCAR file and write it to the combined POTCAR file
-                        potcar_string_tmp = potcar_element_file.read()
-                        potcar_string += potcar_string_tmp
-                        POTCARfile.write(potcar_string_tmp)
-                else:
-                    print(f"POTCAR for element {element.upper()} not found in {POTCAR_dir}")
-
-        # Create the POSCAR file 
-        with open(os.path.join(task_dir, 'POSCAR'), 'w') as POSCARfile:
-                POSCARfile.write(task["POSCAR"])
-        with open(os.path.join(task_dir, 'script.sh'), 'w') as SCRIPTfile:
-                SCRIPTfile.write(script_string)
-        # Extract the 2nd to 4th lines from the POSCAR file and calculate the lattice parameters
-        lattice_vectors = [np.array(list(map(float, poscar_array[i].split()))) for i in range(2, 5)]
-        # Calculate the magnitudes of the lattice vectors (a, b, c)
-        lattice_params = [np.linalg.norm(vec) for vec in lattice_vectors]
-        k_point_string2 = None
-        k_point_density = task_system["calculation_information"]["k_point_density"][0]
-        # Get the k-point density from the task dictionary
-        # Calculate the k-point sampling for each lattice parameter
-        kpoints = [int(np.ceil(2 * np.pi / (lp * k_point_density))) for lp in lattice_params]
-        # Create the KPOINTS file 
-        with open(os.path.join(task_dir, 'KPOINTS'), 'w') as KPOINTSfile:
-            k_point_string = f"""Automatic
-0
-Gamma
-{kpoints[0]} {kpoints[1]} {kpoints[2]}
-    """
-            KPOINTSfile.write(k_point_string)
-        system = ""
-        mag = ""
-        for i in range(len(elements)):
-            if elements[i].upper() == "VA":
-                continue
-            system += elements[i] + str(number[i])
-            mag += f"{str(number[i])}*{MAGNETIZATION_DICT[elements[i].upper()]} "
-        EDIFF = EDIFF_BASE[0] #* sum(number)
-        ISPIN = ""
-        ISPIN = f"#ISPIN=2\n#MAGMOM={mag}"
-        # Write "HI" into the INCAR file
-        with open(os.path.join(task_dir, 'INCAR'), 'w') as incar_file:
-            incar_string = f"""SYSTEM =  {system}
-Accuracy and Algorithm:
-PREC= Normal 
-IALGO=38   # RMM-DIIS
-NCORE= 2
-ENCUT={task_system['calculation_information']['cutoff'][0]} 
-EDIFF = {EDIFF}
-LWAVE={SAVE[0]}
-LCHARG={SAVE[0]}
-
- Ionic Relaxation:
-NSW= 200
-EDIFFG = {EDIFFG[0]}
-IBRION=2   # 1 RMM-DIIS, 2 CG for ionic relaxation
-ISIF={ISIF[0]}
-LREAL={LREAL[0]}
-{ISPIN}
-Smearing and DOS related values:
-{ISMEAR[0]}
-SIGMA = 0.2
-"""
-            incar_file.write(incar_string)
-
-        # Build the $set dictionary dynamically
-        update_set = {
-            f"VASP.INCAR": incar_string,
-            f"VASP.KPOINTS": k_point_string,
-            f"VASP.POSCAR": task["POSCAR"],
-            f"VASP.POTCAR": potcar_string,
-            f"VASP.SCRIPT": script_string,
-            "folder_str": task_id_str,
-            "TO_RUN": True
-        }
-
-        # Perform the update operation
-        collection_calculation.update_one(
-            {"_id": task["_id"]},
-            {
-                "$set": update_set
-            }
-        )
-
-def vasp_input_advanced(source, tag, system_id, extra_incar = None):
-    tasks = collection_calculation.find(
-        {
-            "$and": [
-                {f'system_id': ObjectId(system_id)},
-                {f'VASP.{source}': {'$exists': True}},
-                {f'VASP.{source}.{tag}': {'$exists': False}}
-            ]
-            
-        }
-    )
-    for task in tasks:
-        kpoints2 = None
-        if source == 'prec':
-            #task['VASP'][source]['KPOINTS']
-            poscar = task['VASP'][source]['CONTCAR_PREC']
-            incar = task['VASP']['general']['INCAR_SAVE2']
-            # TODO just Kpoints in prec for future
-            kpoints = task['VASP']['general']['KPOINTS']
-            potcar = task['VASP']['general']['POTCAR']
-
-        elif source == 'eff':
-            #task['VASP'][source]['KPOINTS']
-            poscar = task['VASP'][source]['CONTCAR_EFF']
-            incar = task['VASP']['ISIF7']['INCAR']
-            # TODO just Kpoints in prec for future
-            kpoints = task['VASP']['ISIF7']['KPOINTS']
-            potcar = task['VASP']['general']['POTCAR']
-            if task['VASP']['general'].get('_2KPOINTS'):
-                kpoints2 = task['VASP']['general']['_2KPOINTS']
-        if extra_incar:
-            incar += f"\n{extra_incar}"
-        else:
-            incar += f"\n{tag}"
-
-        task_id_str = ""  
-        for elements in task['elements']:
-            for element in elements:
-                task_id_str += element
-            task_id_str += "-"
-        task_id_str += f'{str(task["_id"])}_{tag}'  # Convert ObjectId to string
-        task_dir = os.path.join(directory_vasp_input, task_id_str)  # Create the path for the folder
-        # Check if the directory_VASP already exists; if not, tagcreate it
-        if not os.path.exists(task_dir):
-            os.makedirs(task_dir)
-            print(f"Created directory: {task_dir}")
-        # Create the POTCAR file by concatenating all element-specific POTCAR files
-        with open(os.path.join(task_dir, 'POSCAR'), 'w') as POSCAR:
-            POSCAR.write(poscar)
-        with open(os.path.join(task_dir, 'POTCAR'), 'w') as POTCAR:
-            POTCAR.write(potcar)
-        with open(os.path.join(task_dir, 'INCAR'), 'w') as INCAR:
-            INCAR.write(incar)
-        with open(os.path.join(task_dir, 'KPOINTS'), 'w') as KPOINTS:
-            KPOINTS.write(kpoints)
-        if kpoints2:
-            with open(os.path.join(task_dir, '_2KPOINTS'), 'w') as _2KPOINTS:
-                _2KPOINTS.write(kpoints2)
-
-
-
-        # Build the $set dictionary dynamically
-        update_set = {
-            f"VASP.{source}.{tag}.INCAR": incar,
-            f"VASP.{source}.{tag}.KPOINTS": kpoints,
-            f"VASP.{source}.{tag}.POSCAR": poscar,
-            f"VASP.{source}.{tag}.POTCAR": potcar
-        }
-        # Add KPOINTS_2 only if k_point_string2 exists
-        if kpoints2:
-            update_set[f"VASP.{source}.{tag}._2KPOINTS"] = kpoints2
-        
-        # Perform the update operation
-        collection_calculation.update_one(
-            {"_id": task["_id"]},
-            {
-                "$set": update_set
-                
-            }
-        )    
-            
-        
-
-
-
 fs = gridfs.GridFS(db)  # Initialize GridFS
 
 def process_output():
@@ -393,6 +169,10 @@ def process_output():
                 if not task:
                     print(f"Task with id {id_str} not found in the database.")
                     continue
+                collection_calculation.update_one(
+                    {"_id": task["_id"]},
+                    {"$set": {f"timestamp_analyzed": datetime.now(timezone.utc)}}
+                )
                 # Update the database with the file content under 'VASP.{source}.{filename}'
                 #collection_calculation.update_one(
                 #    {"_id": task["_id"]},
@@ -517,65 +297,6 @@ def process_output():
                     print(f"Moved folder {folder} to {target_directory} after error")
 
 
-
-
-def process_output_mcsqs():
-    # Iterate over each folder in the directory
-    for folder in os.listdir(directory_mcsqs):
-        folder_path = os.path.join(directory_mcsqs, folder)
-        print(f'Opening folder {folder}')
-        
-        # Ensure it's a folder
-        if os.path.isdir(folder_path):
-            try:
-                # Extract the 'id' and 'source' from the folder name
-                _, id_str = folder.split('_')
-                task = collection_calculation.find_one({"_id": ObjectId(id_str)})
-                
-                if not task:
-                    print(f"Task with id {id_str} not found in the database.")
-                    continue
-                converged = False
-                # Update the database with the file content under 'VASP.{source}.{filename}'
-                collection_calculation.update_one(
-                    {"_id": task["_id"]},
-                    {"$unset": {f"FILES": ""}}
-                )
-                files = {}
-                # Iterate over each file in the folder
-                for file_name in os.listdir(folder_path):
-                    file_path = os.path.join(folder_path, file_name)
-
-                    # Read file content
-                    with open(file_path, 'r') as file:
-                        file_content = file.read()
-                    
-                    # Determine file type (e.g., POSCAR, CONTCAR, OUTCAR, vasprun.xml)
-                    base_file_name = os.path.basename(file_name).upper()
-
-                    if file_name.endswith("POSCAR"):
-                        with open(file_path, 'r') as file:
-                            lines = file.readlines()
-                        if lines is not None and len(lines) >= 2:
-                            lines[1] = "1.0\n"  # Replace the second line (index 1) with "1.0"
-                            file_content = ''.join(lines)
-                            base_file_name = "POSCAR"
-
-
-
-                    # Create the dictionary with the safely read files
-                    files[base_file_name] = file_content
-                    # Update MongoDB
-                collection_calculation.update_one(
-                    {"_id": task["_id"]}, 
-                    {
-                        '$set': {'FILES': files}
-                    })
-            except Exception as e:
-                # Prepare destination path
-                print(e)
-
-
 def check_convergence_outcar(content):
     """
     Check if OUTCAR indicates convergence.
@@ -605,14 +326,6 @@ def check_convergence_vasprun(content):
     if "<calculation>" in content and "<converged>True</converged>" in content:
         return True
     return False
-
-def extract_energy_forces(file_content):
-    # Placeholder function for extracting energy and forces from the file content
-    # Implement the actual logic based on the file format
-    energy = None
-    forces = None
-    # ... extraction logic
-    return energy, forces
 
 def extract_energy_force_outcar(content):
     """

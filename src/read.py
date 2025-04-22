@@ -2,14 +2,7 @@
 import re
 import numpy as np
 import time
-import os
-from pathlib import Path
-
-from pymongo import MongoClient
-# Connect to MongoDB
-client = MongoClient('mongodb://localhost:27017/')
-db = client.DFTforCALPHAD
-collection_system = db.System
+from MongoDB.connect import collection_calculation, collection_system, db
 
 # Constants
 metallic_radii = { 

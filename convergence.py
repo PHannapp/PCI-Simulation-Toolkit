@@ -1,1 +1,0 @@
-# TODO fill convergence, after convergence criterions achieved!

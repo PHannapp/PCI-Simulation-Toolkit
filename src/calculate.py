@@ -1,17 +1,10 @@
-from pymongo import MongoClient
 from bson.objectid import ObjectId  # Required to work with _id
-from write import clean_mcsqs_poscar
 import math
-from scipy.optimize import minimize, differential_evolution  # Import optimization functions
+from scipy.optimize import differential_evolution  # Import optimization functions
 import matplotlib.pyplot as plt
 import numpy as np
-from CONSTANTS import AVOGADRO, EV_TO_KJ
-
-# Connect to MongoDB
-client = MongoClient('mongodb://localhost:27017/')
-db = client.DFTforCALPHAD
-collection_system = db.System
-collection_calculation = db.calculation
+from src.CONSTANTS import AVOGADRO, EV_TO_KJ
+from MongoDB.connect import collection_calculation, collection_system, db
 
 def get_nested_value(dictionary, keys):
     """
@@ -177,50 +170,6 @@ def calculate_mixing_enthalpy(task, source, FORCE_mcsqs=None):
 
     return mixing_enthalpy, mixing_enthalpy_calphad
 
-def calculate_mixing_enthalpy_HV(task, source, FORCE_mcsqs=None):
-
-    formation_enthalpies, formation_enthalpies_calphad = [], []
-    
-    # Split the source key to handle nested keys
-    source_parts = source.split(".")
-    for mixing_proportion in [0.125, 0.875]:
-        # Find the endmember in the collection
-        endmember = collection_calculation.find_one({
-            'type': 'mcsqs',
-            'system_id': task['system_id'],
-            'elements': task['elements'],
-            'mixing_proportion': mixing_proportion
-        })
-        
-        # Safely get the nested values
-        nested_source_value = get_nested_value(endmember, source_parts) if endmember else None
-        
-        if nested_source_value and 'formation_enthalpy' in nested_source_value:
-            formation_enthalpies.append(nested_source_value["formation_enthalpy"])
-            formation_enthalpies_calphad.append(nested_source_value.get("formation_enthalpy_for_calphad", 0))
-        else:
-            print(f'Formation_enthalpy from mixing_proportion {mixing_proportion} missing.')
-            return None, None
-
-    # Safely access formation_enthalpy in task using the source_parts
-    if FORCE_mcsqs:
-        source_parts = FORCE_mcsqs.split(".")
-    task_source_value = get_nested_value(task, source_parts)
-    if not task_source_value or "formation_enthalpy" not in task_source_value:
-        print(f'Formation enthalpy not found in task for source {source}.')
-        return None, None
-
-    mixing_enthalpy = task_source_value["formation_enthalpy"]
-    bounds = [0.125, 0.875]
-    max_range = bounds[1] - bounds[0]
-    # Calculate mixing enthalpy
-    for proportion, formation_enthalpy in zip([(task['mixing_proportion'] - bounds[0]) / max_range, (bounds[1] - task['mixing_proportion']) / max_range], reversed(formation_enthalpies)):
-        mixing_enthalpy -= proportion * formation_enthalpy
-
-    # Calculate mixing enthalpy for CALPHAD
-    mixing_enthalpy_calphad = mixing_enthalpy * task_source_value['number_of_atoms_per_formula_unit'] * AVOGADRO * EV_TO_KJ
-
-    return mixing_enthalpy, mixing_enthalpy_calphad
 
 def objective_function(fit, x_values, y_values):
     RMSE = 0
@@ -251,32 +200,7 @@ def fit_interaction_parameters(x_values, y_values, key, bound, parameter_space, 
         plt.show()
     return result.x, np.linspace(0,1,100), y_fit_values
 
-def objective_function2(fit, x_values, y_values):
-    RMSE = 0
-    for x, y in zip(x_values, y_values):
-        fit_y = x*(1-x)*(fit[0]+fit[1]*(x-(1-x))+fit[2]*(x-(1-x))**2)
-        RMSE += (y - fit_y)**2
-    return (RMSE**(1/2)) / len(y_values)
 
-def fit_interaction_parameters2(x_values, y_values, key, bound, parameter_space, save):
-    print(key)
-    # Fitting equation: =x*(1-x)*(fit[0]+fit[1]*(x-(1-x))+fit[2]*(x-(1-x))**2)
-    bounds = []
-    for i in range(3):
-        if parameter_space[i] == 1:
-            bounds.append((-1*bound, bound))
-        else:
-            bounds.append((0,0))
-    result = differential_evolution(
-        objective_function2, args=(x_values, y_values), bounds=bounds, workers=1, popsize=8, maxiter=4000
-    )
-    print(result.x)
-    y_fit_values = [x*(1-x)*(result.x[0]+result.x[1]*(x-(1-x))+result.x[2]*(x-(1-x))**2) for x in np.linspace(0,1,100)]
-    if save is None:
-        plt.plot(np.linspace(0,1,100), y_fit_values)
-        plt.plot(x_values, y_values, 'o')
-        plt.show()
-    return result.x, np.linspace(0,1,100), y_fit_values
 
 def calculate_energies(sources, forces_thr, FORCE_mcsqs=None):
     for source in sources:

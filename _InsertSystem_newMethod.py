@@ -1,19 +1,11 @@
-from pymongo import MongoClient
-from create_database_entries_from_system import create_reference_elements, create_endmembers, create_mcsqs, create_endmembers_new, create_mixing_new
-from clean_poscar_from_Va import clean_poscar_from_Va
+from src.create_database_entries_from_system import create_reference_elements, create_endmembers_new, create_mixing_new
 import os
-from pymatgen.core.structure import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from src.make_Wyckoff_db import read_wyckoff, get_structure
 from src.VoidSize import void_size
 from src.read import change_poscar
 from pymatgen.io.vasp import Poscar
-
-# Connect to MongoDB
-client = MongoClient('mongodb://localhost:27017/')
-db = client.DFTforCALPHAD
-collection_system = db.System
-collection_calculation = db.calculation
+from MongoDB.connect import collection_calculation, collection_system, db
 
 # Save the current working directory
 original_directory = os.getcwd()

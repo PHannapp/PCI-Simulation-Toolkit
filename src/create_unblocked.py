@@ -1,19 +1,12 @@
 import copy
-from pymongo import MongoClient
 import time
 import numpy as np
 import itertools
 import hashlib
 import math
-import os
 from collections import Counter
-from src.read import read_poscar, read_poscar_name
-
-# Connect to MongoDB
-client = MongoClient('mongodb://localhost:27017/')
-db = client.DFTforCALPHAD
-collection_system = db.System
-collection_calculation = db.calculation
+from src.read import read_poscar_name
+from MongoDB.connect import collection_calculation, collection_system, db
 
 class Atom:
     def __init__(self, element, position, label):
