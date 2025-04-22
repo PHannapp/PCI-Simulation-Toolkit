@@ -1,10 +1,13 @@
-# Para-Equilibrium Thermodynamic Modeling
+# PCI Simulation Toolkit
 
 ## Description
-This open-source program calculates para-equilibrium states for thermodynamic data sets, advancing the thermodynamic modeling of multicomponent phases in hydrogen-para-equilibrium. It was developed to support the research presented in the paper "Advancing the thermodynamic modeling of multicomponent phases in hydrogen-para-equilibrium."
+
+The PCI Simulation Toolkit is an open-source Python framework developed to predict pressure–composition–temperature (PCT) diagrams of metal hydrides based solely on the atomic structure of the hydrogen-free metallic phase. It combines automated symmetry analysis, interstitial site detection, and configuration generation with ab initio DFT calculations to construct thermodynamic databases under para-equilibrium conditions. This toolkit supports the research presented in:
+
+[10.XXXXXX](https://doi.org/10.XXXXXXX)
 
 ## Installation
-To install and set up this program, please refer to the detailed instructions provided in the supplementary materials of the publication. You can access the paper and supplementary materials via the following DOI: [10.XXXXXX](https://doi.org/10.XXXXXXX).
+~ Clone repo, installation of VASP, Enter POTCARS in dir POTCAR, install all dependencies of python libs
 
 ## Usage
 The program consists of five main Python files:
