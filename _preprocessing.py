@@ -1,5 +1,6 @@
 from src.VASP_input import vasp_input, process_output
+from src.add_element import add_element
 
-# Add a small delay to avoid a tight loop consuming excessive resources
+add_element()
 vasp_input()
 process_output()
