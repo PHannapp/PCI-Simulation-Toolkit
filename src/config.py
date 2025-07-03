@@ -1,5 +1,3 @@
-import os
-
 #
 
 # Show pictures on the fly?
