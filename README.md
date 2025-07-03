@@ -10,6 +10,11 @@ The PCI Simulation Toolkit is an open-source Python framework developed to predi
 ~ Clone repo, installation of VASP, Enter POTCARS in dir POTCAR, install all dependencies of python libs
 
 ## Usage
+Before using the toolkit, you need to install MongoDB and create two databases which names align with the settings in **MongoDB/connect.py**. 
+Standard names are "System" for the systems database and "calculation" for the DFT database. 
+The two json files provided (**DFTforCALPHAD.collection_calculation_pub.json** and **DFTforCALPHAD.System_pub.json**) can be readily imported in the MongoDB and used or extended.
+The thermodynamic databases used in the publication are already stored in the systems database.
+
 The program consists of five main Python files:
 
 1. **_InsertSystem.py**: Insert a metall structure by importing a POSCAR file and decorate it with various elements. Here the interstitial sites will be determined.
@@ -18,7 +23,7 @@ The program consists of five main Python files:
     vasp_input() creates all other necessary files (POTCAR, INCAR, KPOINTS) and stores them in the MongoDB
     process_output() processes the OUTCAR file from a finished DFT calculation
 4. **_postprocessing.py**: calculates the formation enthalpies for every database entry
-5. **_tdb_from_system.py**: creates a tdb ready to use for the para-equilibrium calculator stored in directory CALPHAD_CALC
+5. **_tdb_from_system.py**: creates a tdb ready to use for the para-equilibrium calculator stored in directory **CALPHAD_CALC**
 
 ## Citation
 If you use this work, please cite it as:
