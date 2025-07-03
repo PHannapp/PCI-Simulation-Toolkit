@@ -12,21 +12,13 @@ The PCI Simulation Toolkit is an open-source Python framework developed to predi
 ## Usage
 The program consists of five main Python files:
 
-1. **Calculate_PCI.py**: Calculates the plateau pressures and pressure values corresponding to mole fractions in single-phase regions.
-2. **CONSTANTS.py**: Contains constants used for calculating the common tangent.
-3. **Equations.py**: Minimizes the Gibbs energy curve of the solid phase by finding the global minimum for discrete compositions of xH.
-4. **database.py**: Contains the thermodynamic variables to describe different phases.
-5. **Execute.py**: Provides example usage of the files to generate PCI diagrams.
-
-## Running the Code
-To run the program, the file `Execute.py` gives example usage. The script will import the necessary files and prompt the user to input the following variables:
-
-- **solids**: A list of n lists representing the composition of each sublattice.
-- **multiplicity**: A list of integers defining the multiplicity of the sublattices.
-- **site_fractions**: A list of n lists representing the site fractions of the metal elements in each sublattice.
-
-## Outputs
-Running Execute.py will generate the PCI diagrams as described in Sections S1-S3 of the supplementary material.
+1. **_InsertSystem.py**: Insert a metall structure by importing a POSCAR file and decorate it with various elements. Here the interstitial sites will be determined.
+2. **_preprocessing.py**:
+    add_element() creates the POSCAR files for VASP calculations and stores them in the MongoDB
+    vasp_input() creates all other necessary files (POTCAR, INCAR, KPOINTS) and stores them in the MongoDB
+    process_output() processes the OUTCAR file from a finished DFT calculation
+4. **_postprocessing.py**: calculates the formation enthalpies for every database entry
+5. **_tdb_from_system.py**: creates a tdb ready to use for the para-equilibrium calculator stored in directory CALPHAD_CALC
 
 ## Citation
 If you use this work, please cite it as:
